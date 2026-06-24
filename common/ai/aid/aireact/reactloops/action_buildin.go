@@ -55,6 +55,7 @@ var loopAction_DirectlyAnswer = &LoopAction{
 	Description: "Emit a direct answer to the user via 'answer_payload' or FINAL_ANSWER tag. For simple direct answers, omit 'human_readable_thought'. " +
 		"IMPORTANT: directly_answer ONLY delivers the answer; the loop CONTINUES afterwards and this action does NOT end the task. " +
 		"To terminate the ReAct loop you MUST use the 'finish' action (the only terminator). " +
+		"At most ONE directly_answer without 'next_movements' is allowed per CURRENT-TASK; repeating the same report is rejected—use 'finish' or a tool action instead. " +
 		"OPTIONAL: carry a non-empty 'next_movements' delta alongside the answer to schedule follow-up TODO updates.",
 	Options: []aitool.ToolOption{
 		aitool.WithStringParam(
@@ -96,6 +97,9 @@ var loopAction_DirectlyAnswer = &LoopAction{
 			// 关键词: directly_answer ActionVerifier AITAG hint, 5 次重试黑洞修复
 			return WrapDirectlyAnswerError(loop, utils.Error("answer_payload is required for ActionDirectlyAnswer but empty"))
 		}
+		if err := RejectDuplicateDirectlyAnswerWithoutFollowup(loop, action); err != nil {
+			return err
+		}
 		loop.Set("directly_answer_payload", payload)
 		return nil
 	},
@@ -117,6 +121,7 @@ var loopAction_DirectlyAnswer = &LoopAction{
 		// 关键词: directly_answer 永不 Exit, answer-then-continue, finish 唯一终结器
 		invoker.EmitFileArtifactWithExt("directly_answer", ".md", payload)
 		invoker.EmitResultAfterStream(payload)
+		MarkDirectlyAnswerDeliveredWithoutFollowup(loop, action)
 		invoker.AddToTimeline("directly_answer", fmt.Sprintf("user input: \n"+
 			"%s\n"+
 			"ai directly answer:\n"+

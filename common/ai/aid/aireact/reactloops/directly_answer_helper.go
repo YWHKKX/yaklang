@@ -32,6 +32,59 @@ import (
 //	directly_answer 改起来很简单
 const loopIntentHintSimpleQuery = "simple_query"
 
+// loopVarDirectlyAnswerDeliveredWithoutFollowup marks that this CURRENT-TASK already
+// emitted a user-visible directly_answer without scheduling next_movements.
+const loopVarDirectlyAnswerDeliveredWithoutFollowup = "directly_answer_delivered_without_followup"
+
+func directlyAnswerActionHasNextMovements(action *aicommon.Action) bool {
+	return len(aicommon.NormalizeVerifyNextMovements(action)) > 0
+}
+
+func isDirectlyAnswerDeliveredWithoutFollowup(loop *ReActLoop) bool {
+	if loop == nil {
+		return false
+	}
+	switch v := loop.GetVariable(loopVarDirectlyAnswerDeliveredWithoutFollowup).(type) {
+	case bool:
+		return v
+	case string:
+		return v == "true" || v == "1"
+	default:
+		return false
+	}
+}
+
+// RejectDuplicateDirectlyAnswerWithoutFollowup blocks a second directly_answer in the
+// same task when an earlier one already succeeded without next_movements.
+func RejectDuplicateDirectlyAnswerWithoutFollowup(loop *ReActLoop, action *aicommon.Action) error {
+	if loop == nil || action == nil {
+		return nil
+	}
+	if directlyAnswerActionHasNextMovements(action) {
+		return nil
+	}
+	if !isDirectlyAnswerDeliveredWithoutFollowup(loop) {
+		return nil
+	}
+	return utils.Error(
+		"directly_answer was already delivered for this task without next_movements; " +
+			"do not emit another report. Use 'finish' to terminate the loop, or choose a tool action " +
+			"(e.g. write_code, modify_code) if more work is required.",
+	)
+}
+
+// MarkDirectlyAnswerDeliveredWithoutFollowup records a successful directly_answer that
+// did not schedule next_movements, enabling debounce for subsequent attempts.
+func MarkDirectlyAnswerDeliveredWithoutFollowup(loop *ReActLoop, action *aicommon.Action) {
+	if loop == nil || action == nil {
+		return
+	}
+	if directlyAnswerActionHasNextMovements(action) {
+		return
+	}
+	loop.Set(loopVarDirectlyAnswerDeliveredWithoutFollowup, true)
+}
+
 // ShouldAutoFinishAfterSimpleQueryDirectlyAnswer reports whether a directly_answer
 // on a greeting/status (simple_query) task should terminate the loop immediately
 // after emitting the user-visible answer. No extra LLM round for finish/post-summary.
