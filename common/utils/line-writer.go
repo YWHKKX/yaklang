@@ -11,6 +11,21 @@ type fileLineWriter struct {
 	firstLine bool
 }
 
+// readLastByte 用独立的只读句柄读取 path 中偏移 offset 处的字节。
+func readLastByte(path string, offset int64) (byte, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return 0, err
+	}
+	defer f.Close()
+
+	buf := make([]byte, 1)
+	if _, err := f.ReadAt(buf, offset); err != nil {
+		return 0, err
+	}
+	return buf[0], nil
+}
+
 func NewFileLineWriter(file string, flag int, perm fs.FileMode) (*fileLineWriter, error) {
 	f, err := os.OpenFile(file, flag, perm)
 	if err != nil {
@@ -22,12 +37,20 @@ func NewFileLineWriter(file string, flag int, perm fs.FileMode) (*fileLineWriter
 		if err != nil {
 			return nil, err
 		}
-		buf := make([]byte, 1)
-		f.ReadAt(buf, state.Size()-1)
-		if buf[0] != '\n' {
-			_, err := f.WriteString("\n")
+		// 空文件没有“最后一个字符”，直接追加即可；否则会在偏移 -1 处
+		// ReadAt 失败并误写一个前导换行符。另外 f 可能是只写句柄，
+		// 无法 ReadAt，需要用单独的只读句柄读取最后一个字节。
+		if state.Size() > 0 {
+			last, err := readLastByte(file, state.Size()-1)
 			if err != nil {
-				return nil, err
+				// 无法读取时退回“补一个换行符”，避免破坏既有的可追加文件。
+				last = 0
+			}
+			if last != '\n' {
+				_, err := f.WriteString("\n")
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
