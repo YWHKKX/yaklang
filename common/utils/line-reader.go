@@ -3,24 +3,28 @@ package utils
 import (
 	"bufio"
 	"bytes"
-	"github.com/pkg/errors"
 	"os"
+	"strings"
+
+	"github.com/pkg/errors"
+)
+
+// utf8BOM 是 UTF-8 字节序标记，用命名常量代替散落的字节字面量。
+var (
+	utf8BOM       = []byte{0xef, 0xbb, 0xbf}
+	utf8BOMString = string(utf8BOM)
 )
 
 func RemoveBOM(raw []byte) []byte {
-	if len(raw) > 3 {
-		if raw[0] == '\xef' && raw[1] == '\xbb' && raw[2] == '\xbf' {
-			return raw[3:]
-		}
+	if len(raw) > len(utf8BOM) && bytes.HasPrefix(raw, utf8BOM) {
+		return raw[len(utf8BOM):]
 	}
 	return raw
 }
 
 func RemoveBOMForString(raw string) string {
-	if len(raw) > 3 {
-		if raw[0] == '\xef' && raw[1] == '\xbb' && raw[2] == '\xbf' {
-			return raw[3:]
-		}
+	if len(raw) > len(utf8BOMString) && strings.HasPrefix(raw, utf8BOMString) {
+		return raw[len(utf8BOMString):]
 	}
 	return raw
 }
