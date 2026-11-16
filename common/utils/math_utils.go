@@ -41,7 +41,8 @@ func MinInt64(x, y int64) int64 {
 	return y
 }
 
-func ShuffleString(slice []string) {
+// shuffleSlice 使用 Fisher-Yates 算法原地打乱切片。
+func shuffleSlice[T any](slice []T) {
 	r := rand.New(rand.NewSource(time.Now().Unix()))
 	for len(slice) > 0 {
 		n := len(slice)
@@ -51,12 +52,10 @@ func ShuffleString(slice []string) {
 	}
 }
 
+func ShuffleString(slice []string) {
+	shuffleSlice(slice)
+}
+
 func ShuffleInt(slice []int) {
-	r := rand.New(rand.NewSource(time.Now().Unix()))
-	for len(slice) > 0 {
-		n := len(slice)
-		randIndex := r.Intn(n)
-		slice[n-1], slice[randIndex] = slice[randIndex], slice[n-1]
-		slice = slice[:n-1]
-	}
+	shuffleSlice(slice)
 }
