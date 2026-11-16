@@ -357,9 +357,11 @@ var titleRegexp = regexp.MustCompile(`(?is)\<title\>(.*?)\</?title\>`)
 
 func ExtractTitleFromHTMLTitle(s string, defaultValue string) string {
 	var title string
-	l := titleRegexp.FindString(s)
-	if len(l) > 15 {
-		title = EscapeInvalidUTF8Byte([]byte(l))[7 : len(l)-8]
+	// 只转义标题内容，不能先转义整个匹配再按原文长度切片：EscapeInvalidUTF8Byte
+	// 会把控制字符/非法 UTF-8 字节展开成 \xNN，长度变长，按原长度切会截断标题。
+	// 另外闭合标签可能是 </title> 或 <title>，长度不同，也不适合写死下标。
+	if match := titleRegexp.FindStringSubmatch(s); len(match) > 1 {
+		title = EscapeInvalidUTF8Byte([]byte(match[1]))
 	}
 	titleRunes := []rune(title)
 	if len(titleRunes) > 128 {
