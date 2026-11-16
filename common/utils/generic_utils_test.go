@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -43,4 +44,24 @@ func TestContainsAnyAllDuplicateValues(t *testing.T) {
 	assert.True(t, ContainsAll([]int{1, 2}, 2, 2))
 	assert.False(t, ContainsAll([]int{1, 2}, 2, 3, 3))
 	assert.False(t, ContainsAny([]int{1, 2}, 3, 3))
+}
+
+func ExampleContainsAny() {
+	fmt.Println(ContainsAny([]int{1, 2, 3}, 3, 4))
+	fmt.Println(ContainsAny([]int{1, 2, 3}, 4, 5))
+	fmt.Println(ContainsAny([]int{1, 2, 3}))
+	// Output:
+	// true
+	// false
+	// false
+}
+
+func ExampleContainsAll() {
+	fmt.Println(ContainsAll([]int{1, 2, 3}, 1, 3))
+	fmt.Println(ContainsAll([]int{1, 2, 3}, 1, 4))
+	fmt.Println(ContainsAll([]int{1, 2, 3}))
+	// Output:
+	// true
+	// false
+	// true
 }
