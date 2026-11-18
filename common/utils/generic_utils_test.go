@@ -65,3 +65,21 @@ func ExampleContainsAll() {
 	// false
 	// true
 }
+
+func BenchmarkContainsAny(b *testing.B) {
+	s := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = ContainsAny(s, 10, 11)
+	}
+}
+
+func BenchmarkContainsAll(b *testing.B) {
+	s := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = ContainsAll(s, 1, 10)
+	}
+}
